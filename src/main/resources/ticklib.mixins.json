@@ -1,0 +1,21 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "mys.ticklib.mixins",
+  "compatibilityLevel": "JAVA_8",
+  "refmap": "ticklib.refmap.json",
+  "mixins": [
+    "ContainersMixin",
+    "LevelNeighborFreezeMixin",
+    "RedStoneWireBlockMixin",
+    "ServerLevelTickMixin"
+  ],
+  "client": [
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
+}
