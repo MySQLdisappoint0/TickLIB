@@ -1,7 +1,6 @@
 package mys.ticklib.freeze;
 
 import com.mojang.logging.LogUtils;
-import mys.ticklib.event.FrozenContainerDrop;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
@@ -32,6 +31,10 @@ public final class FreezeManager {
     private static final Map<FrozenDropKey, FrozenContainerDrop> PENDING_CONTAINER_DROPS = new HashMap<>();
     private static boolean frozen = false;
     private static int stepTicks = 0;
+    /**
+     * 解冻时设为 true，避免调用 Containers.dropContents(...) 被 Mixin 拦截
+     */
+    private static boolean replayingContainerDrops = false;
 
     private FreezeManager() {
     }
@@ -49,6 +52,10 @@ public final class FreezeManager {
             flushAllPending();
             flushAllPendingContainerDrops();
         }
+    }
+
+    public static boolean isReplayingContainerDrops() {
+        return replayingContainerDrops;
     }
 
     public static void step(int ticks) {
@@ -71,32 +78,30 @@ public final class FreezeManager {
         return false;
     }
 
-    public static void snapshotContainerDrop(ServerLevel level, BlockPos pos, Container container) {
-        FrozenDropKey key = new FrozenDropKey(level.dimension(), pos);
+    /**
+     * 统一快照入口：直接从 Containers.dropContents(...) 的 mixin 调用
+     */
+    public static void snapshotContainerDropFromContainersHook(Level level, BlockPos pos, Container container) {
+        if (!(level instanceof ServerLevel serverLevel)) {
+            return;
+        }
 
-        // 避免重复快照同一个位置
+        FrozenDropKey key = new FrozenDropKey(serverLevel.dimension(), pos);
+
+        // 避免重复记录同一个位置
         if (PENDING_CONTAINER_DROPS.containsKey(key)) {
             return;
         }
 
-        List<ItemStack> copied = new ArrayList<>(container.getContainerSize());
-        for (int i = 0; i < container.getContainerSize(); i++) {
-            copied.add(container.getItem(i).copy());
-        }
-
         FrozenContainerDrop snapshot = new FrozenContainerDrop(
-                level.dimension(),
+                serverLevel.dimension(),
                 pos,
-                copied
+                FrozenContainerDrop.deepCopyFromContainer(container)
         );
 
-        if (!snapshot.isEmpty()) {
+        if (snapshot.isNotEmpty()) {
             PENDING_CONTAINER_DROPS.put(key, snapshot);
         }
-    }
-
-    public static boolean hasPendingContainerDrop(Level level, BlockPos pos) {
-        return PENDING_CONTAINER_DROPS.containsKey(new FrozenDropKey(level.dimension(), pos));
     }
 
     public static void flushAllPendingContainerDrops() {
@@ -109,23 +114,51 @@ public final class FreezeManager {
         List<FrozenContainerDrop> snapshots = new ArrayList<>(PENDING_CONTAINER_DROPS.values());
         PENDING_CONTAINER_DROPS.clear();
 
-        for (FrozenContainerDrop snapshot : snapshots) {
-            ServerLevel level = server.getLevel(snapshot.dimension());
-            if (level == null) {
-                continue;
-            }
+        replayingContainerDrops = true;
+        try {
+            for (FrozenContainerDrop snapshot : snapshots) {
+                ServerLevel level = server.getLevel(snapshot.dimension());
+                if (level == null) continue;
+                if (!level.isLoaded(snapshot.pos())) continue;
 
-            if (!level.isLoaded(snapshot.pos())) {
-                continue;
-            }
+                NonNullList<ItemStack> items =
+                        NonNullList.withSize(snapshot.items().size(), ItemStack.EMPTY);
 
-            NonNullList<ItemStack> items = NonNullList.withSize(snapshot.items().size(), ItemStack.EMPTY);
-            for (int i = 0; i < snapshot.items().size(); i++) {
-                items.set(i, snapshot.items().get(i).copy());
-            }
+                for (int i = 0; i < snapshot.items().size(); i++) {
+                    items.set(i, snapshot.items().get(i).copy());
+                }
 
-            Containers.dropContents(level, snapshot.pos(), items);
+                // 解冻时按原位置重放掉落
+                Containers.dropContents(level, snapshot.pos(), items);
+            }
+        } finally {
+            replayingContainerDrops = false;
         }
+    }
+
+    public static void snapshotContainerDrop(ServerLevel level, BlockPos pos, Container container) {
+        FrozenDropKey key = new FrozenDropKey(level.dimension(), pos);
+
+        // 避免重复快照同一个位置
+        if (PENDING_CONTAINER_DROPS.containsKey(key)) {
+            return;
+        }
+
+        List<ItemStack> copied = FrozenContainerDrop.deepCopyFromContainer(container);
+
+        FrozenContainerDrop snapshot = new FrozenContainerDrop(
+                level.dimension(),
+                pos,
+                copied
+        );
+
+        if (snapshot.isNotEmpty()) {
+            PENDING_CONTAINER_DROPS.put(key, snapshot);
+        }
+    }
+
+    public static boolean hasPendingContainerDrop(Level level, BlockPos pos) {
+        return PENDING_CONTAINER_DROPS.containsKey(new FrozenDropKey(level.dimension(), pos));
     }
 
     public static void queueNeighborUpdate(ServerLevel level, BlockPos pos) {

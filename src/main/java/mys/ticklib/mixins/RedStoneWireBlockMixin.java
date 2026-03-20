@@ -17,7 +17,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(RedStoneWireBlock.class)
 public abstract class RedStoneWireBlockMixin {
     @Inject(method = "updatePowerStrength", at = @At("HEAD"), cancellable = true)
-    private void timefreeze$cancelPowerUpdate(Level level, BlockPos pos, BlockState state, CallbackInfo ci) {
+    private void freeze$cancelPowerUpdate(Level level, BlockPos pos, BlockState state, CallbackInfo ci) {
         if (FreezeManager.isFrozen() && level instanceof ServerLevel serverLevel) {
             FreezeManager.queueNeighborUpdate(serverLevel, pos);
             ci.cancel();
@@ -25,7 +25,7 @@ public abstract class RedStoneWireBlockMixin {
     }
 
     @Inject(method = "canSurvive", at = @At("HEAD"), cancellable = true)
-    private void timefreeze$cancelSurvive(BlockState pState, LevelReader level, BlockPos pos, CallbackInfoReturnable<Boolean> cir) {
+    private void freeze$cancelSurvive(BlockState pState, LevelReader level, BlockPos pos, CallbackInfoReturnable<Boolean> cir) {
         if (FreezeManager.isFrozen() && level instanceof ServerLevel serverLevel) {
             FreezeManager.queueNeighborUpdate(serverLevel, pos);
             cir.setReturnValue(true);
@@ -33,7 +33,7 @@ public abstract class RedStoneWireBlockMixin {
     }
 
     @Inject(method = "canSurviveOn", at = @At("HEAD"), cancellable = true)
-    private void timefreeze$cancelSurviveOn(BlockGetter level, BlockPos pos, BlockState pState, CallbackInfoReturnable<Boolean> cir) {
+    private void freeze$cancelSurviveOn(BlockGetter level, BlockPos pos, BlockState pState, CallbackInfoReturnable<Boolean> cir) {
         if (FreezeManager.isFrozen() && level instanceof ServerLevel serverLevel) {
             FreezeManager.queueNeighborUpdate(serverLevel, pos);
             cir.setReturnValue(true);
