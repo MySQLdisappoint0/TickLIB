@@ -17,7 +17,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class LevelNeighborFreezeMixin {
 
     @Inject(method = "updateNeighborsAt", at = @At("HEAD"), cancellable = true)
-    private void freeze$updateNeighborsAt(BlockPos pos, Block sourceBlock, CallbackInfo ci) {
+    private void timefreeze$updateNeighborsAt(BlockPos pos, Block sourceBlock, CallbackInfo ci) {
         if (FreezeManager.isFrozen() && (Object) this instanceof ServerLevel serverLevel) {
             FreezeManager.queueNeighborUpdate(serverLevel, pos);
             ci.cancel();
@@ -25,7 +25,7 @@ public abstract class LevelNeighborFreezeMixin {
     }
 
     @Inject(method = "updateNeighborsAtExceptFromFacing", at = @At("HEAD"), cancellable = true)
-    private void freeze$updateNeighborsAtExceptFromFacing(BlockPos pos, Block sourceBlock, Direction skipSide, CallbackInfo ci) {
+    private void timefreeze$updateNeighborsAtExceptFromFacing(BlockPos pos, Block sourceBlock, Direction skipSide, CallbackInfo ci) {
         if (FreezeManager.isFrozen() && (Object) this instanceof ServerLevel serverLevel) {
             FreezeManager.queueNeighborUpdate(serverLevel, pos);
             ci.cancel();
@@ -37,7 +37,7 @@ public abstract class LevelNeighborFreezeMixin {
             at = @At("HEAD"),
             cancellable = true
     )
-    private void freeze$neighborChanged1(BlockPos pos, Block sourceBlock, BlockPos sourcePos, CallbackInfo ci) {
+    private void timefreeze$neighborChanged1(BlockPos pos, Block sourceBlock, BlockPos sourcePos, CallbackInfo ci) {
         if (FreezeManager.isFrozen() && (Object) this instanceof ServerLevel serverLevel) {
             FreezeManager.queueNeighborUpdate(serverLevel, pos);
             ci.cancel();
@@ -49,7 +49,7 @@ public abstract class LevelNeighborFreezeMixin {
             at = @At("HEAD"),
             cancellable = true
     )
-    private void freeze$neighborChanged2(BlockState state, BlockPos pos, Block sourceBlock, BlockPos sourcePos, boolean notify, CallbackInfo ci) {
+    private void timefreeze$neighborChanged2(BlockState state, BlockPos pos, Block sourceBlock, BlockPos sourcePos, boolean notify, CallbackInfo ci) {
         if (FreezeManager.isFrozen() && (Object) this instanceof ServerLevel serverLevel) {
             FreezeManager.queueNeighborUpdate(serverLevel, pos);
             ci.cancel();
@@ -57,7 +57,7 @@ public abstract class LevelNeighborFreezeMixin {
     }
 
     @Inject(method = "neighborShapeChanged", at = @At("HEAD"), cancellable = true)
-    private void freeze$neighborShapeChanged(Direction direction, BlockState state, BlockPos pos, BlockPos neighborPos, int flags, int depth, CallbackInfo ci) {
+    private void timefreeze$neighborShapeChanged(Direction direction, BlockState state, BlockPos pos, BlockPos neighborPos, int flags, int depth, CallbackInfo ci) {
         if (FreezeManager.isFrozen() && (Object) this instanceof ServerLevel serverLevel) {
             FreezeManager.queueNeighborUpdate(serverLevel, pos);
             ci.cancel();

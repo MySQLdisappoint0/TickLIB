@@ -1,8 +1,7 @@
-package mys.ticklib.freeze;
+package mys.ticklib.event;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.world.Container;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 
@@ -16,18 +15,20 @@ public record FrozenContainerDrop(ResourceKey<Level> dimension, BlockPos pos, Li
         this.items = items;
     }
 
-    public static List<ItemStack> deepCopyFromContainer(Container container) {
-        List<ItemStack> out = new ArrayList<>(container.getContainerSize());
-        for (int i = 0; i < container.getContainerSize(); i++) {
-            out.add(container.getItem(i).copy());
+    public static List<ItemStack> deepCopy(List<ItemStack> src) {
+        List<ItemStack> out = new ArrayList<>(src.size());
+        for (ItemStack stack : src) {
+            out.add(stack.copy());
         }
         return out;
     }
 
-    public boolean isNotEmpty() {
+    public boolean isEmpty() {
         for (ItemStack stack : items) {
-            if (!stack.isEmpty()) return true;
+            if (!stack.isEmpty()) {
+                return false;
+            }
         }
-        return false;
+        return true;
     }
 }
