@@ -18,12 +18,20 @@ public abstract class ContainersMixin {
             at = @At("HEAD"),
             cancellable = true
     )
-    private static void timefreeze$cancelContainerDrop(Level level, BlockPos pos, Container container, CallbackInfo ci) {
+    private static void freeze$snapshotAndCancelContainerDrop(Level level, BlockPos pos, Container container, CallbackInfo ci) {
+        // 解冻重放时不拦
+        if (FreezeManager.isReplayingContainerDrops()) {
+            return;
+        }
+
         if (!FreezeManager.isFrozen()) {
             return;
         }
 
-        // 只吞掉“已经做过快照的位置”
+        // 在真正准备散落时快照
+        FreezeManager.snapshotContainerDropFromContainersHook(level, pos, container);
+
+        // 冻结期间吞掉原版掉落
         if (FreezeManager.hasPendingContainerDrop(level, pos)) {
             ci.cancel();
         }
