@@ -99,7 +99,12 @@ publishing {
             groupId = 'mys.ticklib'
             artifactId = 'ticklib'
             version = "${mod_version}"
-            from components.java
+
+            artifact jar
+            pom {
+                packaging = 'jar'
+                name = 'ticklib'
+            }
         }
     }
     repositories {
@@ -110,11 +115,17 @@ publishing {
     }
 }
 
+jar.finalizedBy('reobfJar')
+
 tasks.withType(PublishToMavenRepository).configureEach {
     dependsOn tasks.named("reobfJar")
 }
 tasks.withType(PublishToMavenLocal).configureEach {
     dependsOn tasks.named("reobfJar")
+}
+
+tasks.withType(GenerateModuleMetadata).configureEach {
+    enabled = false
 }
 
 tasks.named('processResources', ProcessResources).configure {
